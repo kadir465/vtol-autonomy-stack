@@ -1,0 +1,102 @@
+# ╔════════════════════════════════════════════════════════════════════╗
+# ║  VTOL TAKTİK İHA — KAMERA & YAPAY ZEKA KONFİGÜRASYONU          ║
+# ║  camera_params.yaml                                              ║
+# ╠════════════════════════════════════════════════════════════════════╣
+# ║  Bu dosya Jetson Nano'nun işlem yükünü ve yapay zekanın          ║
+# ║  kararlılığını yönetir. Kamera kaynağı, AI modeli, güvenilirlik  ║
+# ║  eşiği ve görüntü sıkıştırma ayarları burada tanımlanır.        ║
+# ║                                                                  ║
+# ║  ⚠ DİKKAT: Değer değiştirdikten sonra sistemi yeniden           ║
+# ║  başlatmak (ros2 launch) yeterlidir. Derleme gerekmez.           ║
+# ╚════════════════════════════════════════════════════════════════════╝
+
+# ─────────────────────────────────────────────────────────────────────
+#  YAPAY ZEKA GÖRÜNTÜ İŞLEME (Vision Node)
+#  Node: vision_node
+# ─────────────────────────────────────────────────────────────────────
+vision_node:
+  ros__parameters:
+
+    # ── KAMERA KAYNAĞI ────────────────────────────────────────────
+    # Vision node'un hangi ROS topic'ini dinleyeceği.
+    # Fiziksel uçakta ve simülasyonda standart olarak stream_node'un sılaştırdığı yayın kullanılır.
+    camera_topic: "/camera/image_raw/compressed"
+
+    # ── YAPAY ZEKA MODELİ ─────────────────────────────────────────
+    # YOLO modelinin dosya yolu.
+    # Varsayılan: ROS 2 paket paylaşım dizinindeki models/best.pt 
+    # Sahada farklı bir model kullanmak için tam yol girin.
+    # Örnek: "/home/jetson/models/yolov8n_custom.pt"
+    model_path: ""      # Boş = paket dizinindeki kullanılmak istenilen best.pt
+
+    # ── HEDEF TANIMA DOĞRULUK EŞİĞİ ──────────────────────────────
+    # Sahte hedeflere dalışı engellemek için minimum "emin olma" oranı.
+    # 0.0 = Her şeyi hedef kabul et (TEHLİKELİ!)
+    # 1.0 = Hiçbir şeyi hedef kabul etme (KULLANIŞSIZ!)
+    # Önerilen aralık: 0.50-0.80
+    confidence_threshold: 0.60      # %60 — ışık koşullarına göre ayarla
+    
+    # ── DİNAMİK İRTİFA-GÖRÜŞ MODELİ ──────────────────────────────
+    # İrtifa arttıkça hedef küçülür ve YOLO tespiti zorlaşır.
+    # Bu model, confidence eşiğini irtifaya göre otomatik ayarlar:
+    #   threshold = base - (scale × ln(altitude / ref_altitude))
+    #       base     : Referans irtifadaki eşik (confidence_threshold değeri)
+    #       ref_alt  : Bu irtifada eşik = base (değişmez)
+    #       scale    : Logaritmik azalma hızı (yüksek = daha agresif düşüş)
+    #       min      : Eşik asla bunun altına düşemez (false positive koruması)
+    #       max      : Eşik asla bunun üstüne çıkamaz
+    # Örnek: 70m'de %60, 140m'de ~%55, 30m'de ~%65
+    dynamic_confidence_enabled: true       # True = irtifaya göre dinamik, False = sabit
+    confidence_ref_altitude_m: 70.0        # Referans irtifa (metre AGL)
+    confidence_altitude_scale: 0.07        # Logaritmik düşüş katsayısı
+    confidence_min: 0.40                   # Minimum izin verilen eşik (%40)
+    confidence_max: 0.85                   # Maksimum izin verilen eşik (%85)
+
+
+# ─────────────────────────────────────────────────────────────────────
+#  ALT KAMERA YAPAY ZEKA GÖRÜNTÜ İŞLEME (Down Vision Node)
+#  Node: down_vision_node
+#  GPS'siz konum tespiti ve dik açıdan hedef tanıma için
+# ─────────────────────────────────────────────────────────────────────
+down_vision_node:
+  ros__parameters:
+
+    camera_topic: "/down_camera"
+
+    model_path: "" # Boş = paket dizinindeki kullanılmak istenilen best.pt
+
+    confidence_threshold: 0.60
+
+
+# ─────────────────────────────────────────────────────────────────────
+#  KAMERA YAYIN MODÜLÜ (Stream Node — Uçak Üstü)
+#  Node: camera_stream_node
+# ─────────────────────────────────────────────────────────────────────
+camera_stream_node:
+  ros__parameters:
+
+    # ── VİDEO KAYNAĞI ─────────────────────────────────────────────
+    # 0 = İlk USB kamera (/dev/video0)
+    # 1 = İkinci kamera
+    # "ros:/topic_name" = Simülasyon Girdisi (Gazebo'nun raw yayını)
+    # GStreamer pipeline string de girilebilir
+    video_source: "ros:/front_camera/image_raw"
+
+    # ── GÖRÜNTÜ ÇÖZÜNÜRLÜĞÜ ──────────────────────────────────────
+    # Jetson Nano'nun ısınmasını engellemek için düşük tutun.
+    # YOLO YOLOv8n için 640x480 yeterlidir.
+    # Yüksek çözünürlük = daha iyi tespit ama daha fazla ısı ve gecikme.
+    image_width: 640                # Görüntü genişliği (piksel)
+    image_height: 480               # Görüntü yüksekliği (piksel)
+
+    # ── KARE HIZI (FPS) ──────────────────────────────────────────
+    # Yüksek FPS = daha akıcı takip ama daha fazla işlemci yükü.
+    # Jetson Nano için 15-30 arası önerilir.
+    fps: 30                         # Saniyedeki kare sayısı
+
+    # ── JPEG SIKISTIRMA KALİTESİ ──────────────────────────────────
+    # 0-100 arası. Düşük = küçük dosya (hızlı aktarım, düşük kalite)
+    # Yüksek = büyük dosya (yavaş aktarım, yüksek kalite)
+    # Telsiz/WiFi bant genişliğine göre ayarla.
+    # Önerilen: 40-70
+    jpeg_quality: 60                # JPEG sıkıştırma kalitesi

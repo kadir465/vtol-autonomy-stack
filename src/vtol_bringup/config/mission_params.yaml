@@ -1,0 +1,112 @@
+# ╔════════════════════════════════════════════════════════════════════╗
+# ║  VTOL TAKTİK İHA — UÇUŞ & PİLOTAJ KONFİGÜRASYONU                   ║
+# ║  mission_params.yaml                                               ║
+# ╠════════════════════════════════════════════════════════════════════╣
+# ║  Bu dosya uçağın aerodinamik ve görev sınırlarını belirler.        ║
+# ║  Sahada KOD DEĞİŞTİRMEDEN sadece bu dosyayı düzenleyerek           ║
+# ║  uçağın karakteristiği değiştirilebilir.                           ║
+# ║                                                                    ║  
+# ║  ⚠ DİKKAT: Değer değiştirdikten sonra sistemi yeniden başlatmak   ║
+# ║  (ros2 launch) yeterlidir. Derleme gerekmez.                       ║
+# ╚════════════════════════════════════════════════════════════════════╝
+
+# ─────────────────────────────────────────────────────────────────────
+#  GÖREV YÖNETİCİSİ (State Machine / Komutan Beyni)
+#  Node: vtol_mission_manager
+# ─────────────────────────────────────────────────────────────────────
+vtol_mission_manager:
+  ros__parameters:
+
+    # ── KALIKIŞ & İRTİFA ──────────────────────────────────────────
+    takeoff_altitude_m: 150.0        # Hedef kalkış irtifası (metre AGL)
+    loiter_altitude_m: 50.0          # Bekleme/arama irtifası (metre AGL) — YOLO algılama için alçak tutuldu
+
+    # ── GÖREV ZAMANLAYICI ─────────────────────────────────────────
+    mission_loop_hz: 10.0           # Ana karar döngüsü frekansı (Hz)
+    takeoff_timeout_sec: 120.0       # Kalkış zaman aşımı (saniye)
+
+    # ── MOTOR ARMLAMA ─────────────────────────────────────────────
+    arm_retry_count: 5              # Maksimum ARM denemesi
+    arm_retry_delay_sec: 1.0        # ARM denemeleri arası bekleme (saniye)
+    service_timeout_sec: 5.0        # PX4 komut yanıt bekleme süresi (saniye)
+
+    # ── HEDEF TAKİP ──────────────────────────────────────────────
+    target_lost_timeout_sec: 9999.0    # SEARCH/WAIT modunda hedef kayıp toleransı (saniye) (KÖR TEST İÇİN)
+    default_cruise_speed_mps: 25.0  # Varsayılan seyir hızı (m/s)
+    search_radius_m: 100.0          # Hedefe bu mesafeden itibaren SEARCH moduna geç (metre)
+
+    # ── DİNAMİK AERODİNAMİK MODEL ────────────────────────────────
+    # Dönüş yarıçapı artık hıza bağlı olarak otomatik hesaplanır:
+    #   R = V² / (g × tan(φ))
+    # φ (phi) = Maksimum bank açısı. Yüksek açı = dar dönüş ama yapısal risk.
+    # Düşük açı = geniş dönüş ama güvenli kanat yüklemesi.
+    max_bank_angle_deg: 30.0        # Maksimum izin verilen bank/yatış açısı (derece)
+    min_loiter_radius_m: 40.0       # Güvenlik alt sınırı — yarıçap bunun altına düşemez (metre)
+    max_loiter_radius_m: 200.0      # Güvenlik üst sınırı — yarıçap bunun üstüne çıkamaz (metre)
+
+    # ── İRTİFA-YARICAP ÖLÇEKLEME (FOV GENİŞLEMESİ) ───────────────
+    # İrtifa arttıkça kameranın gördüğü alan genişler.
+    # Bu katsayı, aerodinamik yarıçapa ek olarak irtifa bazlı ölçekleme uygular.
+    # Referans irtifa: Bu irtifada ölçekleme faktörü 1.0'dir (hiç etki etmez).
+    altitude_radius_ref_m: 70.0     # Referans irtifa (metre AGL)
+    altitude_radius_scale: 0.3      # İrtifa farkı başına yarıçap ölçekleme oranı (0.0=kapalı, 1.0=agresif)
+
+    # ── DİNAMİK HIZ KADEMELERİ (Operasyonel Oran Modeli) ─────────
+    # Tüm faz hızları search_speed_kmh'ye ORANSAL olarak hesaplanır.
+    # Sahada sadece search_speed_kmh değiştirilerek tüm profil otomatik güncellenir.
+    #   approach_speed = search_speed × approach_speed_ratio
+    #   cruise_speed   = search_speed × cruise_speed_ratio
+    #   engage_speed   = search_speed × engage_speed_ratio
+    #   climb_speed    = search_speed × climb_speed_ratio
+    approach_speed_ratio: 1.5       # Yaklaşma: Arama hızının 1.5 katı (60→90 km/h)
+    cruise_speed_ratio: 3.33        # Seyir: Arama hızının 3.33 katı (60→200 km/h)
+    engage_speed_ratio: 2.5         # Dalış: Arama hızının 2.5 katı (60→150 km/h)
+    climb_speed_ratio: 2.0          # Tırmanış: Arama hızının 2 katı (60→120 km/h)
+
+    # ── DİNAMİK YAVAŞLAMA MESAFESİ ───────────────────────────────
+    # APPROACH → SEARCH geçiş mesafesi, hız farkına göre otomatik hesaplanır:
+    #   D_decel = (V_approach² - V_search²) / (2 × decel_rate)
+    # decel_rate: Varsayılan yavaşlama ivmesi (m/s²). Küçük = uzun mesafe, güvenli.
+    decel_rate_mps2: 1.5            # Yavaşlama ivmesi (m/s²)
+    approach_entry_ratio: 1.3       # CRUISE→APPROACH geçiş mesafesi çarpanı
+                                    # (decel mesafesi × bu oran = CRUISE'dan çıkış mesafesi)
+    min_search_entry_m: 80.0        # APPROACH→SEARCH minimum geçiş mesafesi (metre)
+
+    # ── DALIŞ GÜVENLİK (ENGAGE Failsafe) ─────────────────────────
+    engage_pullup_speed: -10.0      # Acil tırmanış dikey hızı (m/s, NED: negatif=yukarı)
+    engage_pullout_alt_m: -5.0       # Pas geçme / kurtarma irtifası (metre AGL)
+    vision_stale_sec: 9999.0           # Vision verisi bayatlık eşiği (saniye) (KÖR TEST İÇİN)
+    engage_lost_timeout_sec: 9999.0   # Dalışta hedef kayıp toleransı (saniye) (KÖR TEST İÇİN)
+
+# ─────────────────────────────────────────────────────────────────────
+#  AVCI PİLOT (Visual Servo / Kamikaze Dalış Pilotajı)
+#  Node: visual_servo_node
+# ─────────────────────────────────────────────────────────────────────
+visual_servo_node:
+  ros__parameters:
+
+    # ── P-KONTROL KAZANÇLARI (BASE DEĞERLER) ──────────────────────
+    # Bu değerler referans hızdaki (gain_ref_speed_mps) kazanç değerleridir.
+    # Gerçek zamanlı kazanç = base × (ref_speed / current_speed)
+    # Yüksek hızda otomatik düşer → kararlılık.
+    # Düşük hızda otomatik artar → hassasiyet.
+    kp_yaw: 0.005                   # Dönüş (Yaw Rate) kazancı (px → rad/s) [BASE]
+    kp_lateral: 0.02                # Yanal (Roll/Lateral) kazancı (px → m/s) [BASE]
+
+    # ── DİNAMİK KAZANÇ PLANLAMA (Gain Scheduling) ────────────────
+    # Kp = Kp_base × (V_ref / V_current)
+    # Aerodinamik kontrol yüzeyleri yüksek hızda daha etkilidir.
+    # Bu model kazancı hıza ters orantılı olarak ölçekler.
+    gain_scheduling_enabled: true   # True = hıza göre dinamik, False = sabit
+    gain_ref_speed_mps: 16.67       # Referans hız (m/s) — bu hızda Kp = Kp_base
+                                    # (60 km/h = 16.67 m/s, search hızı ile eşleşir)
+    gain_min_ratio: 0.3             # Kazanç asla base'in %30'unun altına düşmez
+    gain_max_ratio: 2.0             # Kazanç asla base'in 2 katını aşmaz
+
+    # ── DALIŞ HIZLARI ────────────────────────────────────────────
+    forward_speed: 25.0             # İleri kamikaze dalış hızı (m/s)
+    dive_speed: 45.0                 # Dikey dalış hızı (m/s)
+
+    # ── KONTROL DÖNGÜSÜ ──────────────────────────────────────────
+    servo_hz: 50.0                  # Servo kontrol frekansı (Hz)
+    stale_sec: 10.0                 # Vision verisi bayatlık eşiği (saniye)

@@ -1,0 +1,31 @@
+# ROS 2 & Colcon build directories
+build/
+install/
+log/
+
+# Python cache & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+ENV/
+env/
+
+# IDE & Editor artifacts
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Large test media files
+*.mp4
+*.avi
+*.mkv
+test.mp4
