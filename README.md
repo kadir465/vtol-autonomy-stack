@@ -59,7 +59,7 @@ flowchart TB
         direction TB
         GCS_UI["gcs_panel.py<br/>(Curses Taktik Arayüz / HUD)"]
         GCS_BRIDGE["gcs_listener.py<br/>(Watchdog & Koordinat Doğrulama)"]
-        GCS_UI <-->|ROS 2 IPC| GCS_BRIDGE
+        GCS_UI <-->|"ROS 2 IPC"| GCS_BRIDGE
     end
 
     subgraph TELEMETRY[" 📡 TELEMETRİ / DATA LINK (WiFi / RF) "]
@@ -69,27 +69,27 @@ flowchart TB
     subgraph UAV[" 🛩️ UÇAK COMPANION COMPUTER (Jetson / RPi) "]
         direction TB
         CAM[("Kamera Sensörü<br/>(CSI / USB / RTSP)")] --> STREAM["stream_node.py<br/>(Lazy-Init Video Publisher)"]
-        STREAM -->|/camera/image_raw/compressed| VISION["vision_node.py<br/>(YOLOv8 AI Inference & Tracker)"]
+        STREAM -->|"/camera/image_raw/compressed"| VISION["vision_node.py<br/>(YOLOv8 AI Inference & Tracker)"]
         
-        VISION -->|/vision/target_error [dx, dy, lock]| FSM["state_machine.py<br/>(Ana Görev Beyni / 9-State FSM)"]
-        VISION -->|/vision/target_error| SERVO["visual_servo.py<br/>(Görsel Servo Dalış Pilotajı)"]
+        VISION -->|"/vision/target_error (dx, dy, lock)"| FSM["state_machine.py<br/>(Ana Görev Beyni / 9-State FSM)"]
+        VISION -->|"/vision/target_error"| SERVO["visual_servo.py<br/>(Görsel Servo Dalış Pilotajı)"]
         
-        FSM -.->|Aktif Et (ENGAGE)| SERVO
+        FSM -.->|"Aktif Et (ENGAGE)"| SERVO
         
-        FSM -->|/fmu/in/trajectory_setpoint| UXRCEDDS["uXRCE-DDS Client Agent"]
-        SERVO -->|/fmu/in/trajectory_setpoint| UXRCEDDS
-        FSM -->|/fmu/in/vehicle_command| UXRCEDDS
+        FSM -->|"/fmu/in/trajectory_setpoint"| UXRCEDDS["uXRCE-DDS Client Agent"]
+        SERVO -->|"/fmu/in/trajectory_setpoint"| UXRCEDDS
+        FSM -->|"/fmu/in/vehicle_command"| UXRCEDDS
     end
 
     subgraph PX4_LAYER[" 🕹️ FLIGHT CONTROLLER (PX4 Autopilot) "]
-        UXRCEDDS <-->|High-Speed UART / Ethernet| PX4["PX4 Firmware v1.14+<br/>(EKF2, Rate Controller, Mixer)"]
+        UXRCEDDS <-->|"UART / Ethernet Link"| PX4["PX4 Firmware v1.14+<br/>(EKF2, Rate Controller, Mixer)"]
         PX4 --> ACTUATORS["Motorlar & Kontrol Yüzeyleri (Aileron, Elevator, Rudder)"]
         SENSORS["Sensörler (IMU, GPS, Pitot Tube, Baro)"] --> PX4
-        PX4 -->|/fmu/out/vehicle_local_position_v1| FSM
+        PX4 -->|"/fmu/out/vehicle_local_position_v1"| FSM
     end
 
-    GCS_BRIDGE <-->|Telemetri & Komutlar| LINK
-    LINK <-->|/control/operator_cmd & /vtol/mission_log| FSM
+    GCS_BRIDGE <-->|"Telemetri & Komutlar"| LINK
+    LINK <-->|"/control/operator_cmd & /vtol/mission_log"| FSM
 ```
 
 ---
