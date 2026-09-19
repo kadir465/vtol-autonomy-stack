@@ -3,152 +3,212 @@
   <img src="https://img.shields.io/badge/PX4-Autopilot%20v1.14+-eb5424?style=for-the-badge&logo=px5&logoColor=white" alt="PX4 Autopilot"/>
   <img src="https://img.shields.io/badge/YOLOv8-Target%20Acquisition-111111?style=for-the-badge&logo=yolo&logoColor=white" alt="YOLOv8"/>
   <img src="https://img.shields.io/badge/Python-3.10+-3776ab?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.10+"/>
-  <img src="https://img.shields.io/badge/Platform-Linux%20%2F%20Ubuntu%2022.04-E95420?style=for-the-badge&logo=ubuntu&logoColor=white" alt="Ubuntu 22.04"/>
+  <img src="https://img.shields.io/badge/Control-Visual%20Servoing-critical?style=for-the-badge" alt="Visual Servoing"/>
   <img src="https://img.shields.io/badge/License-MIT-success?style=for-the-badge" alt="License"/>
 </p>
 
 <h1 align="center">🛩️ VTOL Autonomy Stack</h1>
-<h3 align="center">Autonomous Mission Management & Visual Servoing for Tactical Loitering Munition</h3>
+<h3 align="center">High-Assurance Autonomous Flight Control & Visual Servoing for Tactical Loitering Munitions</h3>
 
 <p align="center">
-  <b>Taktik VTOL Dolanan Mühimmat (Kamikaze İHA) Tam Otonom Görev Yönetim Sistemi</b><br/>
-  <i>ROS 2 Humble · PX4 Offboard Control · YOLOv8 Computer Vision · Circular Orbit Loiter · Precision Dive Terminal Guidance</i>
+  <b>Taktik Dikey Kalkışlı Sabit Kanat (VTOL) Dolanan Mühimmat Tam Otonom Görev ve Güdüm Sistemi</b><br/>
+  <i>ROS 2 Humble · PX4 Offboard Control · YOLOv8 Computer Vision · Circular Orbit Tracking · Visual Servoing Precision Dive</i>
 </p>
 
 <p align="center">
-  <a href="#-overview">Overview</a> •
+  <a href="#-system-overview">Overview</a> •
   <a href="#-system-architecture">Architecture</a> •
-  <a href="#-flight-phases-state-machine">Flight Phases</a> •
+  <a href="#-flight-state-machine-fsm">State Machine</a> •
+  <a href="#-mission-sequence-diagram">Mission Sequence</a> •
+  <a href="#-guidance--control-theory">Guidance Theory</a> •
   <a href="#-ground-control-station-gcs">GCS Terminal</a> •
   <a href="#-installation--build">Installation</a> •
-  <a href="#-quickstart">Quickstart</a> •
-  <a href="#-simulation">Simulation</a> •
-  <a href="#-configuration">Configuration</a>
+  <a href="#-quickstart--simulation">Quickstart</a> •
+  <a href="#-parameters">Configuration</a>
 </p>
 
 ---
 
-## 🔭 Overview / Genel Bakış
+## 🔭 System Overview / Genel Bakış
 
-**VTOL Autonomy Stack**, dikey kalkış ve iniş (VTOL) yapabilen sabit kanatlı taktik insansız hava araçları ve dolanan mühimmatlar (loitering munitions) için geliştirilmiş, yüksek güvenilirlikli bir **ROS 2** uçuş yönetim sistemidir.
+**VTOL Autonomy Stack**, dikey kalkış-iniş (VTOL) yapabilen hibrit sabit kanatlı taktik İHA'lar ve dolanan mühimmatlar (loitering munitions / kamikaze İHA) için geliştirilmiş, endüstriyel standartlarda bir **ROS 2** otonomi yazılımıdır. 
 
-Sistem, pist bağımsız dikey kalkıştan (multikopter modu) başlayıp, sabit kanada geçiş, yüksek hızlı intikal, hedef üzerinde dairesel gözetleme (loiter), derin öğrenme tabanlı hedef tespiti ve hedefe kilitlenip terminal dalış (kamikaze dalış) gerçekleştirmeye kadar olan tüm taktik uçuş profilini otonom olarak icra eder.
+Sistem; pist gerektirmeyen dikey kalkıştan başlayarak, döner kanattan sabit kanada geçişi, yüksek hızlı intikali, hedef alanı üzerinde aerodinamik olarak ölçeklenen dairesel devriyeyi (orbit loiter), yapay zeka tabanlı hedef tespitini ve hedefe kilitlenip terminal görsel servo dalışını (precision kamikaze dive) **Human-in-the-Loop (HITL)** güvenlik mimarisiyle icra eder.
 
-### ✨ Key Capabilities / Temel Özellikler
+### 🌟 Key Engineering Highlights / Mühendislik Özellikleri
 
-- 🚀 **Vertical Takeoff & Transition:** Multikopter modunda 30m dikey tırmanış ve tam otomatik sabit kanat (FW) aerodinamik geçişi.
-- ⚡ **High-Speed Cruise & Glide:** 150m seyir irtifasında hibrit 3D pozisyon+hız vektörü ile 200 km/h intikal.
-- 🔄 **Dynamic Aerodynamic Orbit (Search):** Hedef alanı üzerinde $R = \frac{V^2}{g \cdot \tan(\phi)}$ formülüyle hıza ve yatış limitine göre dinamik hesaplanan 70m yarıçaplı dairesel arama.
-- 🎯 **AI-Powered Target Acquisition:** Ultralytics YOLOv8 ile gerçek zamanlı optik hedef tespiti, bounding box çıkarımı ve piksel hedef merkezleme.
-- 👤 **Human-in-the-Loop (HITL) Safety:** Hedefe kilitlenildiğinde uçak otonom taarruza geçmez; hedefe bakarak pozisyon korur (`hover/loiter track`) ve yer istasyonundan operatörün **ENGAGE** taarruz onayını bekler.
-- 🦅 **Visual Servo Precision Dive:** Operatör onayıyla devreye giren, hıza göre kazancı dinamik ölçeklenen (Gain Scheduling) P-kontrolcü ile 150 km/h terminal dalış.
-- 🖥️ **Tactical Terminal GCS:** Curses tabanlı, düşük kaynak tüketimli, yapay ufuk ve canlı telemetri sunan yer istasyonu arayüzü.
+| Yetenek | Teknik Karşılığı | Avantajı |
+|---|---|---|
+| **Pist Bağımsız Operasyon** | Multikopter VTOL Modu ($Z$-hız kontrollü tırmanış) | Zorlu arazi şartlarında fırlatıcı/katapult gerektirmeden görev icrası |
+| **Tam Otonom Geçiş** | PX4 Native Transition State senkronizasyonu | Aerodinamik kaldırma kuvveti oluşana kadar güvenli geçiş |
+| **Yüksek Hızlı İntikal** | 3D Hibrit Pozisyon + Hız Vektörü ($200\text{ km/h}$) | Rüzgar sürüklenmelerini kompanse eden hassas hedef intikali |
+| **Dinamik Yörünge (Orbit)** | $R = \frac{V^2}{g \cdot \tan(\phi)}$ Aerodinamik Model | Yapısal g-limitlerini aşmadan hıza göre otomatik yarıçap ölçekleme |
+| **AI Optik Kilitlenme** | Ultralytics YOLOv8 ($30\text{ FPS}$, $<30\text{ ms}$ gecikme) | Gerçek zamanlı zırhlı araç / hedef tespiti ve piksel hata kestirimi |
+| **HITL Güvenlik Doktrini** | Operatör Yetkilendirme Protokolü (`ENGAGE_AUTH`) | İstenmeyen sivil/dost unsurlara taarruzu engelleyen nihai insan onayı |
+| **Görsel Güdüm (Dive)** | Gain-Scheduled $P$-Controller ($50\text{ Hz}$ servo döngüsü) | Yüksek hızda kontrol yüzeyi aşırı tepkilerini engelleyen dinamik kazanç |
 
 ---
 
 ## 🏗 System Architecture / Sistem Mimarisi
 
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                         UAV COMPANION COMPUTER (Jetson / RPi)               │
-│                                                                              │
-│  ┌──────────────────┐       ┌─────────────────┐    ┌──────────────────────┐  │
-│  │   stream_node    │       │   vision_node   │    │    state_machine     │  │
-│  │ (Camera Reader / │──────►│    (YOLOv8 AI   │───►│   (Mission Manager / │  │
-│  │  JPEG Publisher) │       │ Target Tracker) │    │     Flight Brain)    │  │
-│  └──────────────────┘       └─────────────────┘    └──────────┬───────────┘  │
-│                                                               │ (On ENGAGE)  │
-│                                                    ┌──────────▼───────────┐  │
-│                                                    │     visual_servo     │  │
-│                                                    │   (Terminal Dive /   │  │
-│                                                    │   Balistik Pilotaj)  │  │
-│                                                    └──────────┬───────────┘  │
-│                             ▲                                 │              │
-│                             │     uXRCE-DDS Bridge (10-50Hz)  ▼              │
-│                      ┌──────┴───────────────────────────────────────┐        │
-│                      │                 PX4 AUTOPILOT                │        │
-│                      │       (Flight Controller / Pixhawk / SITL)   │        │
-│                      └──────────────────────────────────────────────┘        │
-└──────────────────────────────────────────────────────────────────────────────┘
-                                      ▲
-                             WiFi / Telemetry Link
-                                      ▼
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                         GROUND CONTROL STATION (GCS)                         │
-│                                                                              │
-│  ┌───────────────────────────────────┐    ┌───────────────────────────────┐  │
-│  │             gcs_panel             │    │         gcs_listener          │  │
-│  │   (Curses-based Tactical UI &     │◄──►│ (Watchdog, Telemetry Bridge & │  │
-│  │        Mission Commands)          │    │     Coordinate Validator)     │  │
-│  └───────────────────────────────────┘    └───────────────────────────────┘  │
-└──────────────────────────────────────────────────────────────────────────────┘
+Sistem, **Companion Computer (Görev Bilgisayarı)**, **PX4 Otopilot (Uçuş Kontrolcüsü)** ve **Yer Kontrol İstasyonu (GCS)** olmak üzere üç katmanlı dağıtık bir topolojiye sahiptir:
+
+```mermaid
+flowchart TB
+    subgraph GCS[" 🖥️ YER KONTROL İSTASYONU (GCS) "]
+        direction TB
+        GCS_UI["gcs_panel.py<br/>(Curses Taktik Arayüz / HUD)"]
+        GCS_BRIDGE["gcs_listener.py<br/>(Watchdog & Koordinat Doğrulama)"]
+        GCS_UI <-->|ROS 2 IPC| GCS_BRIDGE
+    end
+
+    subgraph TELEMETRY[" 📡 TELEMETRİ / DATA LINK (WiFi / RF) "]
+        LINK["ROS 2 DDS Network Layer (FastDDS / CycloneDDS)"]
+    end
+
+    subgraph UAV[" 🛩️ UÇAK COMPANION COMPUTER (Jetson / RPi) "]
+        direction TB
+        CAM[("Kamera Sensörü<br/>(CSI / USB / RTSP)")] --> STREAM["stream_node.py<br/>(Lazy-Init Video Publisher)"]
+        STREAM -->|/camera/image_raw/compressed| VISION["vision_node.py<br/>(YOLOv8 AI Inference & Tracker)"]
+        
+        VISION -->|/vision/target_error [dx, dy, lock]| FSM["state_machine.py<br/>(Ana Görev Beyni / 9-State FSM)"]
+        VISION -->|/vision/target_error| SERVO["visual_servo.py<br/>(Görsel Servo Dalış Pilotajı)"]
+        
+        FSM -.->|Aktif Et (ENGAGE)| SERVO
+        
+        FSM -->|/fmu/in/trajectory_setpoint| UXRCEDDS["uXRCE-DDS Client Agent"]
+        SERVO -->|/fmu/in/trajectory_setpoint| UXRCEDDS
+        FSM -->|/fmu/in/vehicle_command| UXRCEDDS
+    end
+
+    subgraph PX4_LAYER[" 🕹️ FLIGHT CONTROLLER (PX4 Autopilot) "]
+        UXRCEDDS <-->|High-Speed UART / Ethernet| PX4["PX4 Firmware v1.14+<br/>(EKF2, Rate Controller, Mixer)"]
+        PX4 --> ACTUATORS["Motorlar & Kontrol Yüzeyleri (Aileron, Elevator, Rudder)"]
+        SENSORS["Sensörler (IMU, GPS, Pitot Tube, Baro)"] --> PX4
+        PX4 -->|/fmu/out/vehicle_local_position_v1| FSM
+    end
+
+    GCS_BRIDGE <-->|Telemetri & Komutlar| LINK
+    LINK <-->|/control/operator_cmd & /vtol/mission_log| FSM
 ```
 
 ---
 
-## 🔄 Flight Phases (State Machine)
+## 🔄 Flight State Machine (FSM)
 
-Uçuş görevi 9 sıralı ve güvenli durumdan (FSM) oluşur:
+Görev yöneticisi ([`state_machine.py`](file:///src/vtol_control/vtol_control/state_machine.py)), uçağın kalkıştan dalışa kadar olan tüm uçuş fazlarını hata toleranslı bir durum makinesiyle denetler:
 
+```mermaid
+stateDiagram-v2
+    [*] --> IDLE: Sistem Başlatma & GPS Kilidi
+    
+    IDLE --> PREFLIGHT: Home & Hedef Koordinat Girişi
+    PREFLIGHT --> TAKEOFF: Offboard Mod Aktif + Motorlar ARM
+    
+    TAKEOFF --> TRANSITION: İrtifa >= 30m (Dikey Tırmanış Tamamlandı)
+    TRANSITION --> SLANTED_CLIMB: Sabit Kanat Geçişi Tamamlandı (5s Hover)
+    
+    SLANTED_CLIMB --> CRUISE: İrtifa >= 150m & Hız >= 120 km/h
+    CRUISE --> APPROACH: Hedefe Kalan Mesafe <= 950m
+    
+    APPROACH --> SEARCH_ORBIT: Hedefe Kalan Mesafe <= 100m & Hız <= 60 km/h
+    
+    state SEARCH {
+        [*] --> SEARCH_ORBIT: 70m Dairesel Arama (60 km/h)
+        SEARCH_ORBIT --> TARGET_LOCKED: YOLOv8 Tespit (Conf >= 0.60)
+        TARGET_LOCKED --> SEARCH_ORBIT: Kilit Kaybı (Timeout > Eşik)
+        TARGET_LOCKED --> ENGAGE_AUTHORIZED: Operatörden ENGAGE Onayı Geldi
+    }
+    
+    SEARCH_ORBIT --> RTL: Acil Durum / Yakıt Kritik / Sinyal Kesilmesi
+    ENGAGE_AUTHORIZED --> ENGAGE: visual_servo Kontrolü Devralır
+    
+    state ENGAGE {
+        [*] --> TERMINAL_DIVE: 150 km/h Görsel Güdümlü Balistik Dalış
+        TERMINAL_DIVE --> WAVE_OFF: İrtifa < Eşik VEYA Kilit Kaybı (Pull-up)
+    }
+    
+    WAVE_OFF --> SEARCH_ORBIT: Acil Tırmanışla Yeniden Arama Moduna Geç
+    TERMINAL_DIVE --> [*]: Hedef Etkileşimi / Görev Sonu
 ```
-  [IDLE] ──► [PREFLIGHT] ──► [TAKEOFF] ──► [TRANSITION] ──► [SLANTED_CLIMB]
-                                                                  │
-  [ENGAGE] ◄── [SEARCH (Lock)] ◄── [SEARCH (Orbit)] ◄── [APPROACH] ◄── [CRUISE]
- (Kamikaze     (HITL Onay        (70m Dairesel         (Kademeli
-   Dalış)       Bekleme)            Arama)             Yavaşlama)
-```
-
-| Faz # | Faz Adı | Tipik İrtifa | Hedef Hız | Açıklama |
-|---|---|---|---|---|
-| 0 | `IDLE` | 0m | 0 km/h | Sistem başlangıcı; Home ve Hedef GPS koordinat girişi beklenir. |
-| 1 | `PREFLIGHT` | 0m | 0 km/h | Sensör kontrolleri, PX4 Offboard moduna geçiş ve motor arm etme. |
-| 2 | `TAKEOFF` | 0 → 30m | 50 km/h | Dikey tırmanış (Multicopter VTOL modu). |
-| 3 | `TRANSITION` | 30m | Geçiş | Döner kanattan sabit kanada aerodinamik geçiş (5 sn bekleme). |
-| 4 | `SLANTED_CLIMB`| 30 → 150m| 120 km/h | Hedefe doğru yönelerek tırmanış. |
-| 5 | `CRUISE` | 150m | 200 km/h | Hedefe intikal (hedefe 950 metreye kadar tam hız seyir). |
-| 6 | `APPROACH` | 150 → 70m | 90 → 60 km/h| Kademeli yavaşlama ve operasyon irtifasına alçalış. |
-| 7 | `SEARCH` | 70m | 60 km/h | Hedef üzerinde 70m yarıçaplı dairesel orbit uçuşu ve yapay zeka araması. |
-| 8 | `ENGAGE` | 70 → 0m | 150 km/h | Operatör onayı sonrası görsel servo güdümlü terminal kamikaze dalış. |
 
 ---
 
-## 📦 Package Organization / Paket Yapısı
+## ⏱️ Mission Sequence Diagram / Görev Zaman Akışı
 
-```bash
-vtol-autonomy-stack/
-├── src/
-│   ├── vtol_control/              # Görev yönetimi, uçuş FSM ve yer istasyonu
-│   │   ├── state_machine.py       # Ana uçuş yöneticisi (9 fazlı durum makinesi)
-│   │   ├── visual_servo.py        # Görsel servo terminal dalış pilotajı
-│   │   ├── gcs_panel.py           # Curses tabanlı interaktif operatör arayüzü
-│   │   └── gcs_listener.py        # Watchdog güvenlik monitörü ve köprü
-│   │
-│   ├── vtol_vision/               # Görüntü işleme ve yapay zeka paketi
-│   │   ├── vision_node.py         # YOLOv8 hedef tespit, hata kestirimi & HUD
-│   │   ├── stream_node.py         # Kamera yayınlayıcı (Lazy-init, CPU dostu)
-│   │   └── models/
-│   │       └── best.pt            # Eğitilmiş PyTorch YOLO hedef modeli
-│   │
-│   ├── vtol_bringup/              # Konfigürasyon ve başlatma paketleri
-│   │   ├── launch/
-│   │   │   ├── uav.launch.py      # İHA tümleşik başlatıcı
-│   │   │   ├── gcs.launch.py      # Yer istasyonu başlatıcı
-│   │   │   └── simulation.launch.py # Gazebo & PX4 SITL köprü başlatıcı
-│   │   └── config/
-│   │       ├── mission_params.yaml# Uçuş hızları, irtifalar, PID kazançları
-│   │       └── camera_params.yaml # Kamera çözünürlüğü, FPS ve model eşikleri
-│   │
-│   └── px4_msgs/                  # PX4 ROS 2 arayüz mesaj tanımları
-│
-├── rebuild_clean.sh               # Otomatik önbellek temizleme & derleme scripti
-└── README.md
+Aşağıdaki sıra diyagramı; hedef arama, hedef kilitleme, operatör etkileşimi ve terminal dalış safhalarındaki veri akışını özetlemektedir:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Operator as 👤 Operatör (GCS)
+    participant FSM as 🧠 Mission Manager (state_machine)
+    participant Vision as 👁️ YOLOv8 (vision_node)
+    participant Servo as 🎯 Visual Servo (visual_servo)
+    participant PX4 as 🕹️ PX4 Autopilot
+
+    Note over FSM,PX4: Uçak hedef üzerinde 70m dairesel arama (SEARCH_ORBIT) yapıyor
+    FSM->>PX4: TrajectorySetpoint (Dairesel lookahead teğet hız)
+    
+    Vision->>Vision: Hedef Algılandı (Confidence > 0.60)
+    Vision->>FSM: /vision/target_error (dx, dy, z_lock=1.0)
+    
+    Note over FSM: Hedef Kilitlendi! Dönüş durdurulur, sabit pozisyona geçilir
+    FSM->>PX4: TrajectorySetpoint (Hover + Yaw hedefe çevrilir)
+    FSM->>Operator: ⚠️ "HEDEF KİLİTLENDİ - ENGAGE ONAYI BEKLENİYOR"
+    
+    alt Operatör Onay Verir
+        Operator->>FSM: Komut: [E] -> ENGAGE_AUTH
+        FSM->>Servo: Dalış Modunu Aktif Et (Engage Trigger)
+        Note over Servo,PX4: Kontrol visual_servo düğümüne geçti
+        loop 50 Hz Görsel Servo Döngüsü
+            Vision->>Servo: Anlık Piksel Hatası (dx, dy)
+            Servo->>Servo: Gain Scheduling ile Hız-Açı Vektörü Hesapla
+            Servo->>PX4: TrajectorySetpoint (Vx, Vy, Vz=45m/s Dalış Hızı)
+        end
+    else Operatör İptal Eder veya Hedef Kaybolur
+        Operator->>FSM: Komut: [A] -> ABORT / Kilit Kaybı
+        FSM->>PX4: Tekrar Dairesel Aramaya (SEARCH_ORBIT) Başla
+    end
+```
+
+---
+
+## 📐 Guidance & Control Theory / Kontrol ve Güdüm Teorisi
+
+### 1. Dinamik Aerodinamik Dönüş Yarıçapı (Coordinated Turn Model)
+Arama yarıçapı ($R$), sabit bir değer yerine uçağın hızına ($V$) ve izin verilen maksimum yatış açısına ($\phi_{\text{max}}$) göre kanat yükü sınırları dahilinde otomatik türetilir:
+
+$$R = \frac{V^2}{g \cdot \tan(\phi_{\text{max}})}$$
+
+- $g$: Yerçekimi ivmesi ($9.81\text{ m/s}^2$)
+- $\phi_{\text{max}}$: Maksimum bank açısı ($30^\circ$)
+- $V$: Teğet arama hızı ($16.67\text{ m/s} \approx 60\text{ km/h}$)
+- Elde edilen teorik yarıçap: $R \approx 49\text{ m}$. Sistem güvenlik katsayısıyla bunu $70\text{ m}$'ye sınırlar.
+
+### 2. Görsel Güdümde Kazanç Çizelgeleme (Gain Scheduling)
+Görsel servo algoritması, hedefin optik eksenden olan piksel kaçıklığını ($e_x, e_y$) açısal hız ve yanal hız komutlarına çevirir. Yüksek hızlarda kontrol yüzeylerinin (kanatçık/irtifa dümeni) aerodinamik etkinliği arttığı için sabit kazanç kullanmak yüksek hızlı dalışta tehlikeli salınımlara (flutter/oscillation) neden olur. Bu sebeple kazanç, referans hıza göre ters orantılı ölçeklenir:
+
+$$K_p(V) = K_{p,\text{base}} \cdot \left(\frac{V_{\text{ref}}}{V_{\text{current}}}\right)$$
+
+$$\omega_{\text{yaw}} = K_{p,\text{yaw}}(V) \cdot e_x$$
+$$v_{\text{lateral}} = K_{p,\text{lateral}}(V) \cdot e_x$$
+
+```mermaid
+graph LR
+    IMG[Kamera Görüntüsü] --> YOLO[YOLOv8 Hedef Tespiti]
+    YOLO --> ERR[Piksel Hatası Hesabı: dx, dy]
+    ERR --> GS[Gain Scheduling: Kp = Kp_base * V_ref / V]
+    GS --> CMD[Hız & Yaw Rate Vektörü]
+    CMD --> PX4_TRJ[PX4 TrajectorySetpoint]
+    PX4_TRJ --> MIXER[Kontrol Yüzeyleri & İtme]
 ```
 
 ---
 
 ## 🖥 Ground Control Station (GCS)
 
-Yer İstasyonu (`gcs_panel.py`), harici GUI kütüphanelerine bağımlı olmadan saf Python `curses` ile her türlü terminalde (SSH oturumları dahil) çalışan taktik bir arayüzdür:
+Yer İstasyonu ([`gcs_panel.py`](file:///src/vtol_control/vtol_control/gcs_panel.py)), harici ağır GUI bağımlılıkları olmadan saf Python `curses` motoru ile doğrudan terminalde çalışan ultra-hafif bir C2 (Command & Control) taktik arayüzüdür:
 
 ```text
 ╔═══════════════════════════════════════════════════════════════════════╗
@@ -168,117 +228,119 @@ Yer İstasyonu (`gcs_panel.py`), harici GUI kütüphanelerine bağımlı olmadan
   ⚡ ████ HEDEF KİTLİ ████  |  MOD: SABİT/HOVER  |  ENGAGE EMRİ BEKLENİYOR
 ```
 
-### Klavye Kısayolları (Hotkeys)
-- <kbd>T</kbd> : **TAKEOFF** — Motorları arm eder ve dikey kalkışı başlatır (Sadece `IDLE` fazında).
-- <kbd>G</kbd> : **TARGET GPS** — Hedef enlem/boylam koordinatlarını ayarlar.
-- <kbd>H</kbd> : **HOME GPS** — Kalkış / üs koordinatlarını ayarlar.
-- <kbd>E</kbd> : **ENGAGE** — Kilitlenilen hedefe taarruz/kamikaze dalış yetkisi verir.
-- <kbd>R</kbd> : **RTL** — Return to Launch (Üsse acil geri dönüş).
-- <kbd>A</kbd> : **ABORT** — Görevi iptal et ve güvenli bekleme moduna geç.
-- <kbd>Q</kbd> : Panelden çıkış.
+### Klavye Operatör Kısayolları (HOTKEYS)
+- <kbd>T</kbd> : **TAKEOFF** — Motorları arm eder ve dikey kalkışı başlatır (Sadece `IDLE` modunda).
+- <kbd>G</kbd> : **TARGET GPS** — Görev hedef enlem/boylam koordinatlarını ayarlar.
+- <kbd>H</kbd> : **HOME GPS** — Kalkış / üs koordinatlarını manüel tanımlar.
+- <kbd>E</kbd> : **ENGAGE** — Kilitlenilen hedefe dalış için nihai ateş yetkisi verir.
+- <kbd>R</kbd> : **RTL** — Return to Launch (Üsse acil otonom dönüş).
+- <kbd>A</kbd> : **ABORT** — Görevi iptal et ve güvenli bekleme orbitine geç.
+- <kbd>Q</kbd> : Panelden güvenli çıkış.
 
 ---
 
 ## 🔧 Installation & Build / Kurulum
 
-### Gereksinimler
-- **İşletim Sistemi:** Ubuntu 22.04 LTS
-- **ROS 2:** Humble Hawksbill
-- **PX4 Autopilot:** v1.14 veya üstü
-- **Python:** 3.10+
-- **uXRCE-DDS Agent:** PX4 ↔ ROS 2 haberleşmesi için
+### Sistem Gereksinimleri
+- **İşletim Sistemi:** Ubuntu 22.04 LTS (Jammy Jellyfish)
+- **Middleware:** ROS 2 Humble Hawksbill
+- **Otopilot Firmware:** PX4 Autopilot v1.14+
+- **Donanım Uyumluluğu:** NVIDIA Jetson (Orin / Xavier / Nano), Raspberry Pi 4/5 veya x86-64 Companion PC
 
-### 1. Python Bağımlılıkları
+### 1. Sistem Bağımlılıkları
+```bash
+sudo apt update && sudo apt install -y \
+  python3-pip \
+  python3-colcon-common-extensions \
+  ros-humble-cv-bridge \
+  ros-humble-image-transport
+```
+
+### 2. Python Kütüphaneleri
 ```bash
 pip install ultralytics opencv-python-headless torch torchvision numpy pyyaml
 ```
 
-### 2. Workspace Kurulumu ve Derleme
+### 3. Derleme (Build)
 ```bash
 # Workspace kök dizinine geçin
 cd vtol-autonomy-stack
 
-# ROS 2 ortamını yükleyin
+# ROS 2 ortamını kaynak edin
 source /opt/ros/humble/setup.bash
 
-# Projeyi derleyin (veya bash rebuild_clean.sh kullanın)
+# Derleyin (veya bash rebuild_clean.sh çalıştırın)
 colcon build --symlink-install
 
-# Ortamı yükleyin
+# Ortamı aktif edin
 source install/setup.bash
 ```
 
 ---
 
-## 🚀 Quickstart / Kullanım
+## 🚀 Quickstart & Simulation / Çalıştırma
 
-### Gerçek Uçuş (UAV + GCS)
+### A) SITL Simülasyonu (Gazebo + PX4)
 
-**1. Uçak Tarafında (Companion Computer):**
-```bash
-# uXRCE-DDS Agent başlatın
-MicroXRCEAgent udp4 -p 8888
-
-# Tüm uçak otonomi stack'ini başlatın
-ros2 launch vtol_bringup uav.launch.py
-```
-
-**2. Yer İstasyonunda (GCS Bilgisayarı):**
-```bash
-ros2 launch vtol_bringup gcs.launch.py
-```
-
----
-
-## 🎮 Simulation (SITL & Gazebo)
-
-Gazebo ve PX4 SITL ile tam yazılım simülasyonu (Software-in-the-Loop):
+Tüm sistemi donanımsız olarak test etmek için 3 ayrı terminal açın:
 
 ```bash
-# Terminal 1: PX4 SITL Başlatma
+# Terminal 1: PX4 Gazebo Standart VTOL Simülasyonu
 cd ~/PX4-Autopilot
 make px4_sitl gz_standard_vtol
 
-# Terminal 2: Otonomi Stack & Bridge
+# Terminal 2: Otonomi Stack ve uXRCE-DDS Köprüsü
 ros2 launch vtol_bringup simulation.launch.py
 
-# Terminal 3: Taktik Operatör Paneli
+# Terminal 3: Taktik Operatör Paneli (GCS)
+ros2 launch vtol_bringup gcs.launch.py
+```
+
+### B) Gerçek Uçuş Konfigürasyonu (Donanım Üzerinde)
+
+```bash
+# 1. Companion Computer (Jetson): uXRCE Agent'ı başlatın
+MicroXRCEAgent udp4 -p 8888
+
+# 2. Uçak Otonomi Düğümlerini Başlatın
+ros2 launch vtol_bringup uav.launch.py
+
+# 3. Yer İstasyonundan Bağlanın
 ros2 launch vtol_bringup gcs.launch.py
 ```
 
 ---
 
-## ⚙️ Configuration / Konfigürasyon
+## ⚙️ Configuration / Konfigürasyon Dosyaları
 
-Tüm uçuş, hız, aerodinamik limitler ve yapay zeka parametreleri koda dokunmadan YAML dosyaları üzerinden yönetilebilir:
+Sistem, kod derlemesi gerektirmeden saha koşullarına göre YAML dosyaları üzerinden dinamik olarak ayarlanabilir:
 
-- [`mission_params.yaml`](file:///src/vtol_bringup/config/mission_params.yaml):
-  - `takeoff_altitude_m`: Kalkış irtifası (Varsayılan: `150.0 m`)
-  - `loiter_altitude_m`: Arama irtifası (Varsayılan: `50.0 m`)
-  - `max_bank_angle_deg`: İzin verilen maksimum yatış açısı (Varsayılan: `30.0°`)
-  - `search_speed_kmh`: Dairesel arama hızı (Varsayılan: `60.0 km/h`)
-  - `cruise_speed_ratio`: Seyir hızı katsayısı (Varsayılan: `3.33` $\to$ 200 km/h)
-  - `engage_speed_ratio`: Dalış hızı katsayısı (Varsayılan: `2.5` $\to$ 150 km/h)
+- [`config/mission_params.yaml`](file:///src/vtol_bringup/config/mission_params.yaml):
+  - `takeoff_altitude_m`: Multikopter dikey kalkış tırmanış tavanı ($150.0\text{ m}$).
+  - `loiter_altitude_m`: Optik arama ve devriye irtifası ($50.0\text{ m}$).
+  - `max_bank_angle_deg`: İzin verilen maksimum aerodinamik yatış açısı ($30.0^\circ$).
+  - `search_speed_kmh`: Dairesel arama hızı ($60.0\text{ km/h}$).
+  - `cruise_speed_ratio`: Seyir hızı katsayısı ($3.33 \to 200\text{ km/h}$).
+  - `engage_speed_ratio`: Dalış hızı katsayısı ($2.5 \to 150\text{ km/h}$).
+  - `kp_yaw` / `kp_lateral`: Görsel servo referans kazanç değerleri.
 
-- [`camera_params.yaml`](file:///src/vtol_bringup/config/camera_params.yaml):
-  - `confidence_threshold`: YOLO hedef güvenilirlik eşiği (`0.60`)
-  - `image_width` / `image_height`: Çözünürlük (`640x480`)
-  - `fps`: Kare hızı (`30 FPS`)
-
----
-
-## 📡 ROS 2 Topic Interface
-
-| Topic Adı | Mesaj Tipi | Yön | Açıklama |
-|---|---|---|---|
-| `/fmu/in/trajectory_setpoint` | `TrajectorySetpoint` | Çıkış | PX4 pozisyon, hız ve açı setpoint'leri |
-| `/fmu/in/vehicle_command` | `VehicleCommand` | Çıkış | Mod değiştirme, ARM komutları |
-| `/fmu/out/vehicle_local_position_v1` | `VehicleLocalPosition` | Giriş | Uçak NED koordinat ve hız telemetrisi |
-| `/vision/target_error` | `Point` | Çıkış | Hedef piksel hatası ($x, y$) ve kilit durumu ($z$) |
-| `/vtol/current_state` | `String` | Çıkış | Anlık durum makinesi fazı |
-| `/control/operator_cmd` | `String` | Giriş | GCS operatör komutları (`TAKEOFF`, `ENGAGE`, `RTL`) |
+- [`config/camera_params.yaml`](file:///src/vtol_bringup/config/camera_params.yaml):
+  - `confidence_threshold`: YOLOv8 hedef tespit kilitlenme eşiği ($0.60$).
+  - `image_width` / `image_height`: Kamera giriş çözünürlüğü ($640 \times 480$).
+  - `fps`: Yayın frekansı ($30\text{ FPS}$).
 
 ---
 
-## 🛡️ License
-Bu proje açık kaynak topluluğu ve savunma/robotik araştırmaları için geliştirilmiştir. Detaylar için [LICENSE](LICENSE) dosyasına bakabilirsiniz.
+## 🛡️ Fail-Safe Matrix / Güvenlik Mimarisi
+
+| Hata Senaryosu | Algılama Mekanizması | Otonom Eylem |
+|---|---|---|
+| **Data Link Kopması** | `gcs_listener` Watchdog ($>2\text{ sn}$ sessizlik) | Güvenli Loiter moduna geçiş, süre aşımında otonom RTL (Eve Dönüş) |
+| **Görüntü Akışı Donması** | `vision_node` Stale Frame Checker | ENGAGE dalışını durdur, $10\text{ m/s}$ acil tırmanış ile pas geç (Wave-off) |
+| **Hedef Kilit Kaybı** | $z_{\text{lock}} = 0$ Sinyali | Sabit hover pozisyonundan dairesel arama yörüngesine (SEARCH) geri dönüş |
+| **Kritik İrtifa İhlali** | EKF2 Z-Pozisyon Eşiği ($<5\text{ m}$ yer irtifası) | Acil motor kesme / çarpma emniyeti |
+
+---
+
+## 📜 Lisans & Katkı
+Bu proje MIT lisansı altında sunulmaktadır. Savunma sanayii, otonom hava araçları ve robotik araştırmaları için modüler bir referans mimarisi sağlar.
